@@ -1,0 +1,221 @@
+---
+title: "432 Week 7 Assignment"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### 3. Download the Dragon Phylogeny nexus data and append your dragons to the dataset. Save this in a folder called 'input' and add one line coding characteristics for each of your 3 dragons.
+
+```{r}
+library(ape)
+library(reshape2)
+library(ggplot2)
+library(ggtree)
+DragonNexus<-read.nexus.data("~/Desktop/432 Assignment Week 7/input/DragonMatrix.nex")
+head(DragonNexus)
+names(DragonNexus)
+```
+
+### 4. Apply the same trait weightings as those used in the Dragon Phylogeny Tutorial.
+
+```{r}
+WeightsDat<-read.csv("~/Desktop/432 Assignment Week 7/input/Weights.csv")
+```
+
+We are now going to create a single vector for the weights
+```{r}
+Weights<-paste0(WeightsDat$Weight,collapse="")
+Weights<-strsplit(Weights,split="")[[1]]
+```
+
+Now we will change each letter iunto a value
+```{r}
+LETTERS
+```
+```{r}
+which(LETTERS=="G")
+```
+```{r}
+WeightsNum<-rep(NA,length(Weights))
+for(i in 1:length(WeightsNum)){
+  if(Weights[i] %in% LETTERS){
+    WeightsNum[i]<-which(LETTERS==Weights[i])+9
+  } else {
+    WeightsNum[i]<-Weights[i]
+  }
+}
+WeightsNum<-as.numeric(WeightsNum)
+```
+
+Now that we have a vector of weights, we check to make sure that we have the same amount of numbers as the 0's and 1's from the Dragon matrix. 
+```{r}
+length(WeightsNum)
+```
+
+We are now going to Multiply the weight value by the trait vector for each dragon. Things get complicated in this data set because it is composed of 0, 1 and ?. We know that 0 multiplied by any weight is 0, ? multiplied by a weight is undefined and so all that's left is the weight multiplied by the 1's. To do this, we also have to slice our list object using the double brackets [[]]. 
+
+```{r}
+WtDragonNexus<-DragonNexus # Make a new weighted data frame object
+for (i in 1:length(DragonNexus)){
+  RepWeight<-DragonNexus[[i]]==1
+  WtDragonNexus[[i]][RepWeight]<-WeightsNum[RepWeight]
+  RepWeight<-NA
+}
+```
+
+How by modifying our objects, we re-calculate our distance matrix
+
+```{r}
+WtDragonNexusDF<-data.frame(matrix(unlist(WtDragonNexus),ncol=78,byrow=T))
+row.names(WtDragonNexusDF)<-names(WtDragonNexus)
+WtDragonDist<-dist(WtDragonNexusDF,method='euclidean')
+WtDragonDistMat<-as.matrix(WtDragonDist)
+```
+
+Here is our matrix:
+
+```{r}
+WtPDat<-melt(WtDragonDistMat)
+ggplot(data = WtPDat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()+scale_fill_gradientn(colours=c("white","blue","green","red")) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+
+### 5. Embed images showing your dragon choices in your R markdown report. 
+
+![Stegosaurus](~/Desktop/432 Assignment Week 7/images/steg.jpeg)
+
+[Link to Stegosaurus picture](https://www.livescience.com/24184-stegosaurus-facts.html):
+
+![Tyrannosaurus Rex](~/Desktop/432 Assignment Week 7/images/TrexJPthumb.png)
+
+[Link to Tyrannosaurus rex picture](https://jurassicworld-evolution.fandom.com/wiki/Tyrannosaurus):
+
+![Triceratops](~/Desktop/432 Assignment Week 7/images/tri.jpeg)
+
+[Link to Triceratops picture](https://www.amazon.ca/Schleich-15000-Triceratops-Toy-Figurine/dp/B074VFLXM3):
+
+### 6. Create a visually attractive phylogeny. Use coloured lines to highlight the lineages where your dragons appear on the Dragon Phylogeny.
+
+```{r}
+DragonNexusDF<-data.frame(matrix(unlist(DragonNexus), ncol=78,byrow=T))
+row.names(DragonNexusDF)<-names(DragonNexus)
+head(DragonNexusDF)
+DragonDist<-dist(DragonNexusDF,method='binary')
+DragonDistMat<-as.matrix(DragonDist)
+```
+
+```{r}
+PDat<-melt(DragonDistMat)
+# Using the library reshape2 we are going to rearrange the n*n matrix we currently have to a n^2 by 3 matrix in order to visualize our matrix with ggplot.
+```
+
+```{r}
+dim(DragonDistMat)
+# We are taking a look at the layout of our current matix.
+```
+
+```{r}
+dim(PDat)
+```
+
+```{r}
+head(PDat)
+```
+
+```{r}
+ggplot(data = PDat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()+scale_fill_gradientn(colours=c("white","blue","green","red")) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+Now we are going to plot our tree:
+
+```{r}
+WtDragonTree<-fastme.bal(WtDragonDist)
+ggtree(WtDragonTree,layout="circular")
+```
+
+Let's try and modify our data to make our tree look better
+
+```{r}
+str(WtDragonTree)
+```
+
+The tip labels contain information about the origin of each dragon image which we can see as follows
+
+```{r}
+head(WtDragonTree$tip.label)
+```
+
+We are going to use the tops to colour code our tree
+
+```{r}
+Country<-gsub("[0-9\\.]+([^X]+)X*","\\1",WtDragonTree$tip.label) # Remove leading numbers
+```
+
+Next we have to group tip.labels by their corresponding country.
+
+```{r}
+CountryGroups<-split(WtDragonTree$tip.label, Country)
+WtDTcol<-groupOTU(WtDragonTree,CountryGroups)
+str(WtDTcol)
+```
+
+#### Here is my final phylogenetic tree with all of the dinosaurs!
+
+```{r}
+library(sparcl)
+ggtree(WtDTcol, 
+       branch.length = "none", 
+       layout = "circular", 
+       aes(colour = group)) +
+  geom_tiplab(size = 2, 
+              aes(angle = angle)) +
+  geom_rootpoint(color = "white", 
+                 size = 3, 
+                 alpha = 0.5) +
+  geom_nodepoint(colour = "light pink", 
+                 size = 3, 
+                 alpha = 0.5) +
+  theme_tree("black")  # adding the black background helps the colour pop and the names to be more easily read
+```
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
