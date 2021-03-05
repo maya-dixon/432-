@@ -16,6 +16,7 @@ a. Import your measurements.csv file from the Week 1 Assignment into an object c
 
 ```{r}
 library(dplyr)
+setwd("~/Desktop/SCHOOL/BIOL 432")
 MData <- read.csv("./measurements.csv")
 str(MData)
 ```
@@ -37,6 +38,7 @@ c. Use a dplyr command to create a new dataset BUT with Sp column instead of the
 ```{r}
 MeasShort <- MData %>% 
   select(Sp, everything(), -Organism)
+# Saving the data to a new variable entitled MeasShort
 
 print(MeasShort)
 ```
@@ -46,7 +48,7 @@ write.csv(MeasShort, "~/Desktop/SCHOOL/BIOL 432/MeasShort.csv")
 ```
 
 
-
+ 
 # Part 2: Bash 
 
 #### 1. Inside your project folder, write a bash script called MyCount.sh that will loop through a sequence of 20 numbers. In each iteration the script will print out the number of the loop iteration AND whether it is a single- or double-digit number. For example, some of the output should look like this:
@@ -54,6 +56,22 @@ write.csv(MeasShort, "~/Desktop/SCHOOL/BIOL 432/MeasShort.csv")
 9 is a single-digit number
 10 is a double-digit number
 11 is a double-digit number
+
+#!/bin/bash
+
+# 432 Assignment 4
+
+
+for Count in {1..20}
+do 
+if [ $Count -lt 10 ]; then 
+	echo "$Count is a single-digit number"
+elif [ $Count -gt 9 ]; then
+	echo "$Count is a double-digit number"
+fi
+done
+
+
 
 
 

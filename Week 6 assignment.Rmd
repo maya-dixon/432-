@@ -1,0 +1,178 @@
+---
+title: "Week 6 assignment"
+output: html_notebook
+---
+
+```{r}
+library(ape)
+library(sangerseqR)
+library(ggplot2)
+```
+
+
+```{r}
+library(BiocManager)
+install(c("genbankr", "Biostrings", "ggtree", "annotate"))
+```
+
+```{r}
+install.packages(c("reshape2", "rentrez"))
+library(rentrez)
+library(reshape2)
+```
+
+```{r}
+install.packages("seqinr")
+library(seqinr)
+```
+
+
+The sequence was saved as a fasta file which has the header as the first line and the sequence as the second line. 
+
+```{r}
+human_seq <- read.fasta("~/Desktop/SCHOOL/BIOL 432/Human isolate.fa", as.string = T) #read the fasta file from folder
+human_seq
+```
+
+```{r}
+library(annotate)
+hsBLAST<-blastSequences(human_seq, as = 'data.frame',
+                           hitListSize = 100, timeout = 1200)
+#this step is using BLAST to pull similar sequences from genbank.
+```
+
+```{r}
+hsHitsDF<-data.frame(ID=hsBLAST$Hit_accession,Seq=hsBLAST$Hsp_hseq,
+                     stringsAsFactors = FALSE)
+# here we are making a simple vector into a simple data.frame object with two columns
+```
+
+```{r}
+hsBLAST$Hit_len
+# This helps us visualize the length of the sequences
+```
+
+```{r}
+hsHitsDNA<-sapply(hsHitsDF$Seq,strsplit,split="")
+# this splits the DNA sequence for each row in a single line of code
+```
+
+```{r}
+names(hsHitsDNA)<-paste(1:nrow(hsHitsDF),hsHitsDF$ID,sep="_") 
+# Giving each sequence a unique name
+```
+
+```{r}
+hsHitsDNA<-as.DNAbin(hsHitsDNA) 
+# Convert to a DNAbin object
+```
+
+```{r}
+hsAlign<-muscle(hsHitsDNA,quiet=F)
+# Using muscle on our DNAbin object
+```
+
+```{r}
+checkAlignment(hsAlign[1:20,1:100],what=1)
+# Inspecting the alignments for any errors
+```
+
+```{r}
+checkAlignment(hsAlign[21:40,1:100],what=1)
+```
+
+```{r}
+checkAlignment(hsAlign,what=2)
+```
+
+```{r}
+checkAlignment(hsAlign,what=3)
+# Here we are checking the aligned for the sequences and they are all aligned which is why there is a lign as the graph.
+```
+
+```{r}
+checkAlignment(hsAlign,what=4)
+```
+
+```{r}
+KeepSeq<-SeqLen>1000
+hsSubset<-hsAlign[KeepSeq,]
+hsAlign<-muscle(hsSubset,quiet=F)
+```
+
+
+```{r}
+hsDM<-dist.dna(hsAlign, model="K80")
+class(hsDM)
+```
+
+```{r}
+length(hsDM)
+```
+
+```{r}
+hsDMmat<-as.matrix(hsDM)
+dim(hsDMmat)
+```
+
+```{r}
+View(hsDMmat)
+```
+
+```{r}
+Dat<-melt(hsDMmat)
+dim(Dat)
+```
+
+```{r}
+ggplot(data = Dat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+```
+
+```{r}
+ggplot(data = Dat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()+scale_fill_gradientn(colours=c("white","blue","green","red"))
+```
+
+These graphs make sense because all our sequences are aligned
+
+```{r}
+hsTree<-nj(hsDM)
+str(hsTree)
+```
+
+```{r}
+class(hsTree)
+```
+
+```{r}
+library(ggtree)
+```
+
+```{r}
+ggtree(hsTree)
+```
+
+When the ID's were put into the BLAST search the results came up with Severe acute respiratory syndrome coronavirus 2 isolate which is COVID in humans. So this sequence belongs to the COVID 2 virus which was isolated from the patients biofluid's this is something to be very concerned about. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
